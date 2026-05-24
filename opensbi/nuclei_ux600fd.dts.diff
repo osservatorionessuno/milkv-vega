@@ -1,0 +1,72 @@
+diff --git a/conf/nuclei_ux600fd.dts b/conf/nuclei_ux600fd.dts
+index 1b5004f90..55677cf73 100755
+--- a/conf/nuclei_ux600fd.dts
++++ b/conf/nuclei_ux600fd.dts
+@@ -84,12 +84,67 @@
+ 		reg = <0x0 0x8000000 0x0 0x4000000>;
+ 	};
+ 
++	/*
++	 * Split ACLINT description of the Nuclei timer block (CLINT-
++	 * compatible part starts at +0x1000). The "riscv,aclint-mswi"
++	 * and "riscv,aclint-mtimer" compatibles let OpenSBI's FDT
++	 * driver take sizes from DT reg (instead of the sifive,clint0
++	 * path which hardcodes the 16 KiB MSWI / 32 KiB mtimecmp
++	 * sizes that fragment the PMP map on this 8-PMP-entry SoC).
++	 *
++	 * Linux and U-Boot here use SBI for timer/IPI, so they don't
++	 * care whether we describe it as CLINT or split ACLINT.
++	 */
++	mswi: mswi@2001000 {
++		compatible = "riscv,aclint-mswi";
++		reg = <0x0 0x02001000 0x0 0x1000>;
++		interrupts-extended = <&cpu0_intc 3>;
++	};
++
++	mtimer: mtimer@2005000 {
++		compatible = "riscv,aclint-mtimer";
++		reg = <0x0 0x02005000 0x0 0x8>,     /* mtimecmp */
++		      <0x0 0x0200cff8 0x0 0x8>;     /* mtime */
++		reg-names = "mtimecmp", "mtime";
++		interrupts-extended = <&cpu0_intc 7>;
++	};
++
++	/*
++	 * Syscon covering the Nuclei-private slice of the timer block
++	 * (0x02000000-0x02000FFF) so we can describe the MSFTRST reset
++	 * register at offset 0xFF0 as a generic syscon-reboot node.
++	 * The CLINT-compatible part starts at +0x1000 and lives in its
++	 * own node above.
++	 */
++	syscon: syscon@2000000 {
++		compatible = "syscon", "simple-mfd";
++		reg = <0x0 0x02000000 0x0 0x1000>;
++	};
++
++	reboot {
++		compatible = "syscon-reboot";
++		regmap = <&syscon>;
++		offset = <0xff0>;
++		mask = <0xffffffff>;
++		value = <0x80000a5f>;
++	};
++
++	poweroff {
++		compatible = "syscon-poweroff";
++		regmap = <&syscon>;
++		offset = <0xff0>;
++		mask = <0xffffffff>;
++		value = <0x80000a5f>;
++	};
++
+ 	uart0: serial@10013000 {
+ 		compatible = "sifive,uart0";
+ 		reg = <0x0 0x10013000 0x0 0x1000>;
+ 		interrupt-parent = <&plic0>;
+ 		interrupts = <2>;
+ 		clocks = <&hfclk2>;
++		clock-frequency = <100000000>;
++		current-speed = <115200>;
+ 		status = "okay";
+ 	};
+ 

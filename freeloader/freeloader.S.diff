@@ -1,0 +1,41 @@
+diff --git a/freeloader_rootfs/freeloader.S b/freeloader_rootfs/freeloader.S
+index d407ff73f..5784937f4 100755
+--- a/freeloader_rootfs/freeloader.S
++++ b/freeloader_rootfs/freeloader.S
+@@ -123,6 +123,19 @@ _start:
+ 	li t0, CSR_CACHE_ENABLE
+ 	csrs CSR_MCACHE_CTL, t0
+ 
++	/*
++	 * Nuclei UART0 setup register at 0x10013020.
++	 * Program 8 data bits (UART_DATA_8BITS = 0x30) here, before any
++	 * code that uses the UART. The reset value selects a format
++	 * other than 8-bit, so OpenSBI's banner came out garbled until
++	 * this write happened. The upstream sifive-uart driver does not
++	 * touch this register, so it has to be done at the SoC-bringup
++	 * stage — that's us.
++	 */
++	li t0, 0x10013020
++	li t1, 0x30
++	sw t1, 0(t0)
++
+ 	/* move data from NOR to DDR */
+ 	li t0, OPENSBI_START_BASE
+ 	la t1, sbi
+@@ -186,9 +199,13 @@ _start:
+ 	/*csrci 0x7c0, 0x1
+ 	csrci 0x7c1, 0x1*/
+ 
+-	li a0, 0 /* hart ID */
+-	li a1, 0 /* fdt offset, reserved */
+-	li a2, 0 /* Reserved */
++	li a0, 0              /* boot hart ID */
++	li a1, FDT_START_BASE /* FDT address per RISC-V boot protocol.
++	                         Standalone OpenSBI ignores a1 (uses
++	                         compile-time FW_JUMP_FDT_ADDR); this
++	                         change is a precondition for any future
++	                         DT-driven generic-platform step. */
++	li a2, 0              /* Reserved */
+ 
+ 	/* Goto OpenSBI */
+ 
