@@ -1,0 +1,12 @@
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -258,7 +258,7 @@ uboot: $(uboot_bin)
+
+ $(uboot_wrkdir)/.config: $(uboot_srcdir) $(target_gcc)
+ 	mkdir -p $(uboot_wrkdir)
+-	make -C $(uboot_srcdir) O=$(uboot_wrkdir) CROSS_COMPILE=$(CROSS_COMPILE) nuclei_hbird_defconfig
++	make -C $(uboot_srcdir) O=$(uboot_wrkdir) CROSS_COMPILE=$(CROSS_COMPILE) milkv_vega_defconfig
+
+ .PHONY: uboot-menuconfig
+ uboot-menuconfig: $(uboot_wrkdir)/.config
